@@ -165,7 +165,7 @@ export class BatchRequestsService {
       ) === -1
     ) {
       throw new Error(
-        `A batched repsonse must contain a Content-type: ${BatchRequestsService.H_CONTENT_TYPE_MIXED}; boundary header`
+        `A batched response must contain a Content-type: ${BatchRequestsService.H_CONTENT_TYPE_MIXED}; boundary header`
       );
     }
 

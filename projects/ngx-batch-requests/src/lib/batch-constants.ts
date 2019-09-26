@@ -1,0 +1,10 @@
+export const CONTENT_TYPE = 'Content-Type';
+export const CONTENT_TYPE_JSON = 'application/ld+json';
+export const CONTENT_TYPE_MIXED = 'multipart/mixed;';
+export const CONTENT_TYPE_BATCH = 'multipart/batch;';
+export const BOUNDARY_BATCH = 'batch';
+export const BOUNDARY_MIXED = `${CONTENT_TYPE_MIXED};boundary=`;
+export const DOUBLE_DASH = '--';
+export const NEW_LINE = '\n';
+export const EMPTY_STRING = '';
+export const SPACE = ' ';
