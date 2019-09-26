@@ -17,7 +17,15 @@
     "lib": [
       "es2018",
       "dom"
-    ]
+    ],
+    "paths": {
+      "ngx-batch-requests": [
+        "dist/ngx-batch-requests"
+      ],
+      "ngx-batch-requests/*": [
+        "dist/ngx-batch-requests/*"
+      ]
+    }
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,
