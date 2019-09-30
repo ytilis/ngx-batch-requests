@@ -6,6 +6,7 @@ import {
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Injectable } from '@angular/core';
+import { CONTENT_TYPE, CONTENT_TYPE_MIXED } from './batch-constants';
 import { BatchRequestsConfigService } from './batch-requests.config.service';
 import { BatchRequestsService } from './batch-requests.service';
 
@@ -20,9 +21,9 @@ export class BatchRequestsInterceptor implements HttpInterceptor {
     req: HttpRequest<any>,
     next: HttpHandler
   ): Observable<HttpEvent<any>> {
-    const contentType = req.headers.get(BatchRequestsService.H_CONTENT_TYPE);
+    const contentType = req.headers.get(CONTENT_TYPE);
 
-    if (contentType && contentType.startsWith('multipart/mixed') || !this.config.shouldBatch(req)) {
+    if (contentType && contentType.startsWith(CONTENT_TYPE_MIXED) || !this.config.shouldBatch(req)) {
       return next.handle(req);
     }
 

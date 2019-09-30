@@ -11,26 +11,21 @@ import {
 } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { bufferTime, filter } from 'rxjs/operators';
+import {
+  BOUNDARY,
+  CONTENT_ID, CONTENT_ID_PREFIX_TEMPLATE,
+  CONTENT_TYPE,
+  CONTENT_TYPE_BATCH, CONTENT_TYPE_HTTP,
+  CONTENT_TYPE_MIXED,
+  DOUBLE_DASH, EMPTY_STRING,
+  HTTP_VERSION_1_1, NEW_LINE, SPACE, XSSI_PREFIX
+} from './batch-constants';
 import { BatchRequestsConfigService } from './batch-requests.config.service';
-
-const XSSI_PREFIX = /^\)\]\}",?\n/;
 
 @Injectable({
   providedIn: 'root'
 })
 export class BatchRequestsService {
-  private static HTTP_VERSION_1_1 = 'HTTP/1.1';
-  private static BOUNDARY = '1494052623884';
-  private static MMM_CONTENT_TYPE = 'multipart/mixed; boundary=';
-  private static MMM_CONTENT_TYPERESPONSE = 'multipart/batch; boundary=';
-  private static H_CONTENT_ID = 'Content-ID';
-  public static H_CONTENT_TYPE = 'Content-Type';
-  private static H_CONTENT_ID_PREFIX_TEMPLATE = '<b29c5de2-0db4-490b-b421-6a51b598bd22+{i}>';
-  private static DOUBLE_DASH = '--';
-  private static NEW_LINE = '\r\n';
-  private static EMPTY_STRING = '';
-  private static SPACE = ' ';
-
   private batcher: Observable<BatchStreamObject>;
   private requestObserver: Subject<BatchStreamObject>;
 
@@ -47,7 +42,7 @@ export class BatchRequestsService {
     this.batcher = this.requestObserver;
 
     this.headers = new HttpHeaders({
-      [BatchRequestsService.H_CONTENT_TYPE]: `${BatchRequestsService.MMM_CONTENT_TYPE}${BatchRequestsService.BOUNDARY}`
+      [CONTENT_TYPE]: `${CONTENT_TYPE_MIXED}${BOUNDARY}`
     });
 
     const defaultOptions = config.defaultRequestOptions;
@@ -127,25 +122,19 @@ export class BatchRequestsService {
     requests.forEach((r, i) => {
       const urlParts = this.getUrlParts(r.urlWithParams);
 
-      bodyParts.push(BatchRequestsService.DOUBLE_DASH + BatchRequestsService.BOUNDARY);
+      bodyParts.push(DOUBLE_DASH + BOUNDARY);
       bodyParts.push(
-        `${
-          BatchRequestsService.H_CONTENT_TYPE
-          }: application/http; msgtype=request`,
-        `${
-          BatchRequestsService.H_CONTENT_ID
-          }: ${BatchRequestsService.H_CONTENT_ID_PREFIX_TEMPLATE.replace(
+        `${CONTENT_TYPE}: ${CONTENT_TYPE_HTTP}`,
+        `${CONTENT_ID}: ${CONTENT_ID_PREFIX_TEMPLATE.replace(
           '{i}',
           i.toString()
         )}`,
-        BatchRequestsService.EMPTY_STRING
+        EMPTY_STRING
       );
 
       bodyParts.push(
         // tslint:disable-next-line:max-line-length
-        `${r.method.toUpperCase()} ${urlParts.path}${urlParts.search} ${
-          BatchRequestsService.HTTP_VERSION_1_1
-          }`,
+        `${r.method.toUpperCase()} ${urlParts.path}${urlParts.search} ${HTTP_VERSION_1_1}`,
         `Host: ${urlParts.host}`,
         `Accept: application/json, text/plain, */*`
       );
@@ -157,25 +146,21 @@ export class BatchRequestsService {
         bodyParts.push(header);
       });
 
-      bodyParts.push(BatchRequestsService.EMPTY_STRING);
+      bodyParts.push(EMPTY_STRING);
 
       if (r.body) {
         bodyParts.push(r.serializeBody().toString());
       }
 
-      bodyParts.push(BatchRequestsService.EMPTY_STRING);
+      bodyParts.push(EMPTY_STRING);
     });
 
-    bodyParts.push(
-      BatchRequestsService.DOUBLE_DASH +
-      BatchRequestsService.BOUNDARY +
-      BatchRequestsService.DOUBLE_DASH
-    );
+    bodyParts.push(DOUBLE_DASH + BOUNDARY + DOUBLE_DASH);
 
     return new HttpRequest(
       this.config.batchMethod,
       this.config.batchPath,
-      bodyParts.join(BatchRequestsService.NEW_LINE),
+      bodyParts.join(NEW_LINE),
       {
         headers: this.headers,
         params: this.params,
@@ -188,32 +173,28 @@ export class BatchRequestsService {
   public parse(
     response: HttpResponse<ArrayBuffer | Blob | FormData | string | null>
   ): HttpResponse<any>[] {
-    const contentTypeHeaderValue = response.headers.get(
-      BatchRequestsService.H_CONTENT_TYPE
-    );
+    const contentTypeHeaderValue = response.headers.get(CONTENT_TYPE);
     // tslint:disable-next-line:no-null-keyword
     if (
       contentTypeHeaderValue == null ||
-      contentTypeHeaderValue.indexOf(
-        BatchRequestsService.MMM_CONTENT_TYPERESPONSE
-      ) === -1
+      contentTypeHeaderValue.indexOf(CONTENT_TYPE_BATCH) === -1
     ) {
       throw new Error(
-        'A batched repsonse must contain a content-type: multipart/mixed; boundary header'
+        `A batched response must contain a ${CONTENT_TYPE}: ${CONTENT_TYPE_MIXED} header`
       );
     }
 
     const boundary = contentTypeHeaderValue
-      .split(BatchRequestsService.MMM_CONTENT_TYPERESPONSE)[1]
-      .replace(/"/g, BatchRequestsService.EMPTY_STRING);
+      .split(CONTENT_TYPE_BATCH)[1]
+      .replace(/"/g, EMPTY_STRING);
 
     return response.body
       .toString()
-      .split(BatchRequestsService.DOUBLE_DASH + boundary)
+      .split(DOUBLE_DASH + boundary)
       .filter(part => {
         return (
-          part !== BatchRequestsService.EMPTY_STRING &&
-          part !== BatchRequestsService.DOUBLE_DASH + BatchRequestsService.NEW_LINE &&
+          part !== EMPTY_STRING &&
+          part !== DOUBLE_DASH + NEW_LINE &&
           !!(part && part.trim())
         );
       })
@@ -223,7 +204,7 @@ export class BatchRequestsService {
         // 2. The actual response http + headers
         // 3. The response body (if any)
         const batchedParts = part.split(
-          BatchRequestsService.NEW_LINE + BatchRequestsService.NEW_LINE
+          NEW_LINE + NEW_LINE
         );
         const headers = new HttpHeaders();
         let status: number;
@@ -231,22 +212,22 @@ export class BatchRequestsService {
         let body = batchedParts[2];
 
         batchedParts[1]
-          .split(BatchRequestsService.NEW_LINE)
+          .split(NEW_LINE)
           .forEach((header, i) => {
-            const lineParts = header.split(BatchRequestsService.SPACE);
+            const lineParts = header.split(SPACE);
             if (i === 0) {
               status = parseInt(lineParts[1], 10);
               statusText = lineParts
                 .slice(2)
-                .join(BatchRequestsService.SPACE);
+                .join(SPACE);
             } else {
               headers.append(
                 lineParts[0].replace(
                   ':',
-                  BatchRequestsService.EMPTY_STRING
+                  EMPTY_STRING
                 ),
                 header.substring(
-                  header.indexOf(BatchRequestsService.SPACE) + 1
+                  header.indexOf(SPACE) + 1
                 )
               );
             }
@@ -254,7 +235,7 @@ export class BatchRequestsService {
 
         // implicitly strip a potential XSSI prefix.
         if (body !== undefined && body.length > 0) {
-          body = body.replace(XSSI_PREFIX, BatchRequestsService.EMPTY_STRING);
+          body = body.replace(XSSI_PREFIX, EMPTY_STRING);
         }
 
         return new HttpResponse<any>({
@@ -282,13 +263,13 @@ export class BatchRequestsService {
     // Skip if a custom Content-Type header is provided
     if (
       req.headers != null &&
-      req.headers.get(BatchRequestsService.H_CONTENT_TYPE) != null
+      req.headers.get(CONTENT_TYPE) != null
     ) {
       return;
     }
 
     req.headers.append(
-      BatchRequestsService.H_CONTENT_TYPE,
+      CONTENT_TYPE,
       req.detectContentTypeHeader()
     );
   }
