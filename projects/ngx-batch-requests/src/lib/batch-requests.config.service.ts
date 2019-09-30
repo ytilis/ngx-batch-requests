@@ -1,28 +1,22 @@
-import { HttpHeaders, HttpParams, HttpRequest } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { HttpRequest, HttpHeaders, HttpParams } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BatchRequestsConfigService {
-
-  constructor() {
+  batchPath(): string {
+    return '/api/batch';
   }
-
-  get batchUrl(): string {
-    return '/api/$batch';
-  }
-
   batchMethod(): 'POST' | 'PUT' | 'PATCH' {
     return 'POST';
   }
-
   getBuffTimeSpan(): number {
-    return 0;
+    return 250;
   }
 
   getMaxBufferSize(): number {
-    return 0;
+    return 20;
   }
 
   getRequestOptions(): {
@@ -31,8 +25,12 @@ export class BatchRequestsConfigService {
     withCredentials?: boolean
   } {
     return {
-      withCredentials: false
+      withCredentials: true
     };
+  }
+
+  parseBody(body: string): any {
+    return JSON.parse(body);
   }
 
   shouldBatch(_: HttpRequest<any>): boolean {
