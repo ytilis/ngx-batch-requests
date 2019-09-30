@@ -50,7 +50,7 @@ export class BatchRequestsService {
       [BatchRequestsService.H_CONTENT_TYPE]: `${BatchRequestsService.MMM_CONTENT_TYPE}${BatchRequestsService.BOUNDARY}`
     });
 
-    const defaultOptions = config.getRequestOptions();
+    const defaultOptions = config.defaultRequestOptions;
     if (defaultOptions.headers) {
       defaultOptions.headers.keys().forEach((k, _) => {
         this.headers.append(k, defaultOptions.headers.get(k));
@@ -68,9 +68,9 @@ export class BatchRequestsService {
     this.batcher
       .pipe(
         bufferTime(
-          config.getBuffTimeSpan(),
+          config.bufferTimeSpan,
           null,
-          config.getMaxBufferSize()
+          config.bufferMaxSize,
         ),
         filter(arr => !!arr.length) // ensures we do not process empty arrays
       )
@@ -173,8 +173,8 @@ export class BatchRequestsService {
     );
 
     return new HttpRequest(
-      this.config.batchMethod(),
-      this.config.batchPath(),
+      this.config.batchMethod,
+      this.config.batchPath,
       bodyParts.join(BatchRequestsService.NEW_LINE),
       {
         headers: this.headers,

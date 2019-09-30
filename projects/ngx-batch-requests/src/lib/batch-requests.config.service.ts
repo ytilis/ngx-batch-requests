@@ -5,35 +5,21 @@ import { HttpRequest, HttpHeaders, HttpParams } from '@angular/common/http';
   providedIn: 'root'
 })
 export class BatchRequestsConfigService {
-  batchPath(): string {
-    return '/api/batch';
-  }
-  batchMethod(): 'POST' | 'PUT' | 'PATCH' {
-    return 'POST';
-  }
-  getBuffTimeSpan(): number {
-    return 250;
-  }
+  bufferTimeSpan = 250;
+  bufferMaxSize = 20;
 
-  getMaxBufferSize(): number {
-    return 20;
-  }
+  batchPath = '/api/batch';
+  batchMethod: 'POST' | 'PUT' | 'PATCH' = 'POST';
 
-  getRequestOptions(): {
+  defaultRequestOptions: {
     headers?: HttpHeaders
     params?: HttpParams
     withCredentials?: boolean
-  } {
-    return {
-      withCredentials: true
-    };
-  }
+  } = {
+    withCredentials: true
+  };
 
-  parseBody(body: string): any {
-    return JSON.parse(body);
-  }
+  parseBody = (body: string): any => JSON.parse(body);
 
-  shouldBatch(_: HttpRequest<any>): boolean {
-    return true;
-  }
+  shouldBatch = (req: HttpRequest<any>): boolean => true;
 }
