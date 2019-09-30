@@ -1,4 +1,4 @@
-import { Injectable, Optional } from '@angular/core';
+import { Inject, Injectable, Optional } from '@angular/core';
 import {
   HttpHandler,
   HttpRequest,
@@ -11,16 +11,18 @@ import {
 } from '@angular/common/http';
 import { Observable, Subject } from 'rxjs';
 import { bufferTime, filter } from 'rxjs/operators';
+import defaultsDeep from 'lodash.defaultsdeep';
+
 import {
   BOUNDARY,
-  CONTENT_ID, CONTENT_ID_PREFIX_TEMPLATE,
+  CONTENT_ID, CONTENT_ID_PREFIX,
   CONTENT_TYPE,
   CONTENT_TYPE_BATCH, CONTENT_TYPE_HTTP,
   CONTENT_TYPE_MIXED,
   DOUBLE_DASH, EMPTY_STRING,
   HTTP_VERSION_1_1, NEW_LINE, SPACE, XSSI_PREFIX
-} from './batch-constants';
-import { BatchRequestsConfigService } from './batch-requests.config.service';
+} from './utils';
+import { BATCH_REQUESTS_CONFIG, defaultBatchRequestsConfig } from './batch-requests.config';
 
 @Injectable({
   providedIn: 'root'
@@ -36,8 +38,10 @@ export class BatchRequestsService {
   constructor(
     private httpClient: HttpClient,
     @Optional()
-    private config: BatchRequestsConfigService = new BatchRequestsConfigService()
+    @Inject( BATCH_REQUESTS_CONFIG ) public config,
   ) {
+    this.config = defaultsDeep(config, defaultBatchRequestsConfig);
+
     this.requestObserver = new Subject<BatchStreamObject>();
     this.batcher = this.requestObserver;
 
@@ -119,37 +123,34 @@ export class BatchRequestsService {
   private batch(requests: HttpRequest<any>[]): HttpRequest<any> {
     const bodyParts = [];
 
-    requests.forEach((r, i) => {
-      const urlParts = this.getUrlParts(r.urlWithParams);
+    requests.forEach((req, id) => {
+      const urlParts = this.getUrlParts(req.urlWithParams);
 
       bodyParts.push(DOUBLE_DASH + BOUNDARY);
       bodyParts.push(
         `${CONTENT_TYPE}: ${CONTENT_TYPE_HTTP}`,
-        `${CONTENT_ID}: ${CONTENT_ID_PREFIX_TEMPLATE.replace(
-          '{i}',
-          i.toString()
-        )}`,
+        `${CONTENT_ID}: <${CONTENT_ID_PREFIX}+${id}>`,
         EMPTY_STRING
       );
 
       bodyParts.push(
         // tslint:disable-next-line:max-line-length
-        `${r.method.toUpperCase()} ${urlParts.path}${urlParts.search} ${HTTP_VERSION_1_1}`,
+        `${req.method.toUpperCase()} ${urlParts.path}${urlParts.search} ${HTTP_VERSION_1_1}`,
         `Host: ${urlParts.host}`,
         `Accept: application/json, text/plain, */*`
       );
 
-      this.setDetectedContentType(r);
+      this.setDetectedContentType(req);
 
-      r.headers.keys().forEach(key => {
-        const header = `${key}: ${r.headers.getAll(key).join(',')}`;
+      req.headers.keys().forEach(key => {
+        const header = `${key}: ${req.headers.getAll(key).join(',')}`;
         bodyParts.push(header);
       });
 
       bodyParts.push(EMPTY_STRING);
 
-      if (r.body) {
-        bodyParts.push(r.serializeBody().toString());
+      if (req.body) {
+        bodyParts.push(req.serializeBody().toString());
       }
 
       bodyParts.push(EMPTY_STRING);
@@ -203,9 +204,7 @@ export class BatchRequestsService {
         // 1. The batch content type header
         // 2. The actual response http + headers
         // 3. The response body (if any)
-        const batchedParts = part.split(
-          NEW_LINE + NEW_LINE
-        );
+        const batchedParts = part.split(NEW_LINE + NEW_LINE);
         const headers = new HttpHeaders();
         let status: number;
         let statusText: string;

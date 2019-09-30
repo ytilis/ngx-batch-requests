@@ -5,17 +5,21 @@ import {
   HttpHandler
 } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { Injectable } from '@angular/core';
-import { CONTENT_TYPE, CONTENT_TYPE_MIXED } from './batch-constants';
-import { BatchRequestsConfigService } from './batch-requests.config.service';
+import { Inject, Injectable } from '@angular/core';
+import defaultsDeep from 'lodash.defaultsdeep';
+
+import { CONTENT_TYPE, CONTENT_TYPE_MIXED } from './utils';
+import { BATCH_REQUESTS_CONFIG, defaultBatchRequestsConfig } from './batch-requests.config';
 import { BatchRequestsService } from './batch-requests.service';
 
 @Injectable()
 export class BatchRequestsInterceptor implements HttpInterceptor {
   constructor(
     private batchService: BatchRequestsService,
-    private config: BatchRequestsConfigService
-  ) {}
+    @Inject( BATCH_REQUESTS_CONFIG ) public config,
+  ) {
+    this.config = defaultsDeep(config, defaultBatchRequestsConfig);
+  }
 
   intercept(
     req: HttpRequest<any>,

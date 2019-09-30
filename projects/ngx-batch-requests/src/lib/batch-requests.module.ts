@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core';
-import { BatchRequestsConfigService } from './batch-requests.config.service';
+import { BATCH_REQUESTS_CONFIG, defaultBatchRequestsConfig } from './batch-requests.config';
 import { BatchRequestsService } from './batch-requests.service';
 
 @NgModule({
@@ -8,7 +8,10 @@ import { BatchRequestsService } from './batch-requests.service';
   exports: [],
   providers: [
     BatchRequestsService,
-    BatchRequestsConfigService
+    {
+      provide: BATCH_REQUESTS_CONFIG,
+      useValue: defaultBatchRequestsConfig,
+    },
   ]
 })
 export class BatchRequestsModule { }
