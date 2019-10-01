@@ -31,9 +31,14 @@ In your `AppModule` providers, you can set the configuration like so:
       withCredentials: true
     },
   
-    parseBody: (body): any => JSON.parse(body),
+    parseResponse: (response) => ({
+      body: response.body && JSON.parse(response.body),
+      headers: response.headers,
+      status: response.status,
+      statusText: response.statusText
+    }),
   
-    shouldBatch: (req): boolean => true,
+    shouldBatch: (request) => true,
   }
 }
 ```

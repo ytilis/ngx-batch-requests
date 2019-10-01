@@ -1,4 +1,4 @@
-import { HttpRequest, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpRequest, HttpHeaders, HttpParams, HttpResponse } from '@angular/common/http';
 import { InjectionToken } from '@angular/core';
 
 export interface BatchRequestsConfig {
@@ -14,9 +14,9 @@ export interface BatchRequestsConfig {
     withCredentials?: boolean
   };
 
-  parseBody(body: string): any;
+  parseResponse(response: HttpResponse<any>): any;
 
-  shouldBatch(req: HttpRequest<any>): boolean;
+  shouldBatch(request: HttpRequest<any>): boolean;
 }
 
 export const defaultBatchRequestsConfig = {
@@ -30,9 +30,14 @@ export const defaultBatchRequestsConfig = {
     withCredentials: true
   },
 
-  parseBody: (body): any => JSON.parse(body),
+  parseResponse: (response) => ({
+    body: response.body && JSON.parse(response.body),
+    headers: response.headers,
+    status: response.status,
+    statusText: response.statusText
+  }),
 
-  shouldBatch: (req): boolean => true,
+  shouldBatch: (request) => true,
 };
 
 export const BATCH_REQUESTS_CONFIG = new InjectionToken<BatchRequestsConfig>( null );

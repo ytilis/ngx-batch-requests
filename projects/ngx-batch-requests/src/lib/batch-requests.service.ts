@@ -101,8 +101,8 @@ export class BatchRequestsService {
               if (response.type !== HttpEventType.Response) {
                 return;
               }
-              this.parse(response).forEach((r, i) => {
-                arr[i].result.next(r);
+              this.parse(response).forEach((res, i) => {
+                arr[i].result.next(res);
                 arr[i].result.complete();
               });
             },
@@ -205,7 +205,7 @@ export class BatchRequestsService {
         // 2. The actual response http + headers
         // 3. The response body (if any)
         const batchedParts = part.split(NEW_LINE + NEW_LINE);
-        const headers = new HttpHeaders();
+        let headers = new HttpHeaders();
         let status: number;
         let statusText: string;
         let body = batchedParts[2];
@@ -213,22 +213,13 @@ export class BatchRequestsService {
         batchedParts[1]
           .split(NEW_LINE)
           .forEach((header, i) => {
-            const lineParts = header.split(SPACE);
             if (i === 0) {
-              status = parseInt(lineParts[1], 10);
-              statusText = lineParts
-                .slice(2)
-                .join(SPACE);
+              const [protocol, statusCode, ...statusTextArray] = header.split(SPACE);
+              status = parseInt(statusCode, 10);
+              statusText = statusTextArray.join(SPACE);
             } else {
-              headers.append(
-                lineParts[0].replace(
-                  ':',
-                  EMPTY_STRING
-                ),
-                header.substring(
-                  header.indexOf(SPACE) + 1
-                )
-              );
+              const [key, value] = header.split(': ');
+              headers = headers.append(key, value);
             }
           });
 
@@ -237,12 +228,14 @@ export class BatchRequestsService {
           body = body.replace(XSSI_PREFIX, EMPTY_STRING);
         }
 
-        return new HttpResponse<any>({
-          body: body && this.config.parseBody(body),
-          headers,
-          status,
-          statusText
-        });
+        return this.config.parseResponse(
+          new HttpResponse<any>({
+            body,
+            headers,
+            status,
+            statusText
+          })
+        );
       });
   }
 

@@ -26,6 +26,9 @@
   "bugs": {
     "url": "https://github.com/ytilis/ngx-batch-requests/issues"
   },
+  "dependencies": {
+    "lodash.defaultsdeep": "^4.6.1"
+  },
   "peerDependencies": {
     "@angular/common": "^8.2.8",
     "@angular/core": "^8.2.8",
