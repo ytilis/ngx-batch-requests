@@ -14,7 +14,7 @@ export interface BatchRequestsConfig {
     withCredentials?: boolean
   };
 
-  parseResponse(response: HttpResponse<any>): any;
+  parseResponse(response: HttpResponse<any>, request: HttpRequest<any>): any;
 
   shouldBatch(request: HttpRequest<any>): boolean;
 }
@@ -30,12 +30,7 @@ export const defaultBatchRequestsConfig = {
     withCredentials: true
   },
 
-  parseResponse: (response) => ({
-    body: response.body && JSON.parse(response.body),
-    headers: response.headers,
-    status: response.status,
-    statusText: response.statusText
-  }),
+  parseResponse: (response, request) => response,
 
   shouldBatch: (request) => true,
 };

@@ -71,12 +71,12 @@ export class BatchRequestsService {
           null,
           config.bufferMaxSize,
         ),
-        filter(arr => !!arr.length) // ensures we do not process empty arrays
+        filter(queue => !!queue.length) // ensures we do not process empty arrays
       )
-      .subscribe(arr => {
+      .subscribe(queue => {
         // If only one request
-        if (arr.length === 1) {
-          const one = arr[0];
+        if (queue.length === 1) {
+          const one = queue[0];
           one.next.handle(one.req).subscribe(
             update => {
               one.result.next(update);
@@ -91,7 +91,8 @@ export class BatchRequestsService {
           return;
         }
 
-        const batchRequest = this.batch(arr.map(n => n.req));
+        const requests = queue.map(n => n.req);
+        const batchRequest = this.batch(requests);
         this.httpClient
           .request<ArrayBuffer | Blob | FormData | string | null>(
             batchRequest
@@ -101,9 +102,10 @@ export class BatchRequestsService {
               if (response.type !== HttpEventType.Response) {
                 return;
               }
-              this.parse(response).forEach((res, i) => {
-                arr[i].result.next(res);
-                arr[i].result.complete();
+
+              this.parse(response, requests).forEach((res, i) => {
+                queue[i].result.next(res);
+                queue[i].result.complete();
               });
             },
             error => {
@@ -172,7 +174,8 @@ export class BatchRequestsService {
   }
 
   public parse(
-    response: HttpResponse<ArrayBuffer | Blob | FormData | string | null>
+    response: HttpResponse<ArrayBuffer | Blob | FormData | string | null>,
+    requests: HttpRequest<any>[],
   ): HttpResponse<any>[] {
     const contentTypeHeaderValue = response.headers.get(CONTENT_TYPE);
     // tslint:disable-next-line:no-null-keyword
@@ -199,7 +202,7 @@ export class BatchRequestsService {
           !!(part && part.trim())
         );
       })
-      .map(part => {
+      .map((part, requestIndex) => {
         // splitting by two new lines gets
         // 1. The batch content type header
         // 2. The actual response http + headers
@@ -234,7 +237,8 @@ export class BatchRequestsService {
             headers,
             status,
             statusText
-          })
+          }),
+          requests[requestIndex],
         );
       });
   }
