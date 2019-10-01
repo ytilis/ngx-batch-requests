@@ -1,6 +1,31 @@
 {
   "name": "ngx-batch-requests",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": {
+    "name": "Yury Tilis",
+    "email": "ytilis@gmail.com",
+    "url": "http://yury.tilis.net/"
+  },
+  "keywords": [
+    "ng",
+    "ngx",
+    "angular",
+    "angular-2",
+    "batching",
+    "http-batching",
+    "http",
+    "performance",
+    "http performance"
+  ],
+  "homepage": "https://www.npmjs.com/package/ngx-batch-requests",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ytilis/ngx-batch-requests.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ytilis/ngx-batch-requests/issues"
+  },
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
