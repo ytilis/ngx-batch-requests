@@ -32,7 +32,8 @@
     "build": "ng build",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "e2e": "ng e2e",
+    "publish": "npm run build && npm publish dist/ngx-batch-requests/"
   },
   "dependencies": {
     "@angular/animations": "^7.0.0",
