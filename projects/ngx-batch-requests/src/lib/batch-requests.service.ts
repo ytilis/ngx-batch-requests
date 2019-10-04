@@ -142,7 +142,7 @@ export class BatchRequestsService {
         `Accept: application/json, text/plain, */*`
       );
 
-      this.setDetectedContentType(req);
+      req = this.setDetectedContentType(req);
 
       req.headers.keys().forEach(key => {
         const header = `${key}: ${req.headers.getAll(key).join(',')}`;
@@ -261,16 +261,15 @@ export class BatchRequestsService {
   private setDetectedContentType(req: HttpRequest<any>) {
     // Skip if a custom Content-Type header is provided
     if (
-      req.headers != null &&
-      req.headers.get(CONTENT_TYPE) != null
+      req.headers !== null &&
+      req.headers.get(CONTENT_TYPE) !== null
     ) {
-      return;
+      return req;
     }
 
-    req.headers.append(
-      CONTENT_TYPE,
-      req.detectContentTypeHeader()
-    );
+    return req.clone({
+      headers: req.headers.set(CONTENT_TYPE, req.detectContentTypeHeader())
+    });
   }
 
   private ensureLeadingBackSlash(path: string): string {
