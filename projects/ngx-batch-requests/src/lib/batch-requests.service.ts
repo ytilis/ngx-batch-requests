@@ -226,9 +226,12 @@ export class BatchRequestsService {
             }
           });
 
-        // implicitly strip a potential XSSI prefix.
         if (body !== undefined && body.length > 0) {
+          // implicitly strip a potential XSSI prefix.
           body = body.replace(XSSI_PREFIX, EMPTY_STRING);
+
+          // Trim trailing newlines
+          body = body.trim();
         }
 
         return this.config.parseResponse(
