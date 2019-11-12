@@ -9,8 +9,9 @@ import {
   HttpEventType,
   HttpParams
 } from '@angular/common/http';
+import { RxNgZoneScheduler } from 'ngx-rxjs-zone-scheduler';
 import { Observable, Subject } from 'rxjs';
-import { bufferTime, filter } from 'rxjs/operators';
+import { bufferTime, filter, observeOn } from 'rxjs/operators';
 import defaultsDeep from 'lodash.defaultsdeep';
 
 import {
@@ -37,6 +38,7 @@ export class BatchRequestsService {
 
   constructor(
     private httpClient: HttpClient,
+    private zoneScheduler: RxNgZoneScheduler,
     @Optional()
     @Inject( BATCH_REQUESTS_CONFIG ) public config,
   ) {
@@ -70,8 +72,12 @@ export class BatchRequestsService {
           config.bufferTimeSpan,
           null,
           config.bufferMaxSize,
+
+          // NOTE: We leave NgZone here, and reenter it in the observeOn call below, to avoid hanging protractor tests
+          this.zoneScheduler.leaveNgZone(),
         ),
-        filter(queue => !!queue.length) // ensures we do not process empty arrays
+        filter(queue => !!queue.length), // ensures we do not process empty arrays
+        observeOn(this.zoneScheduler.enterNgZone()),
       )
       .subscribe(queue => {
         // If only one request
