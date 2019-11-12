@@ -5,6 +5,7 @@
     "entryFile": "src/public-api.ts"
   },
   "whitelistedNonPeerDependencies": [
-    "lodash.defaultsdeep"
+    "lodash.defaultsdeep",
+    "ngx-rxjs-zone-scheduler"
   ]
 }

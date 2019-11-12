@@ -1,6 +1,6 @@
 {
   "name": "ngx-batch-requests",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "license": "MIT",
   "author": {
     "name": "Yury Tilis",
@@ -27,7 +27,8 @@
     "url": "https://github.com/ytilis/ngx-batch-requests/issues"
   },
   "dependencies": {
-    "lodash.defaultsdeep": "^4.6.1"
+    "lodash.defaultsdeep": "^4.6.1",
+    "ngx-rxjs-zone-scheduler": "^0.2.1"
   },
   "peerDependencies": {
     "@angular/common": "^8.2.8",
