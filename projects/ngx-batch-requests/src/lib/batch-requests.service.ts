@@ -273,8 +273,13 @@ export class BatchRequestsService {
       return req;
     }
 
+    const contentType = req.detectContentTypeHeader();
+    if (!contentType) {
+      return req;
+    }
+
     return req.clone({
-      headers: req.headers.set(CONTENT_TYPE, req.detectContentTypeHeader())
+      headers: req.headers.set(CONTENT_TYPE, contentType)
     });
   }
 
