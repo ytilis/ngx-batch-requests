@@ -14,6 +14,8 @@ export interface BatchRequestsConfig {
     withCredentials?: boolean
   };
 
+  debug: boolean;
+
   parseResponse(response: HttpResponse<any>, request: HttpRequest<any>): any;
 
   shouldBatch(request: HttpRequest<any>): boolean;
@@ -29,6 +31,8 @@ export const defaultBatchRequestsConfig = {
   defaultRequestOptions: {
     withCredentials: true
   },
+
+  debug: false,
 
   parseResponse: (response, request) => response,
 

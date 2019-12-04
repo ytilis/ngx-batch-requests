@@ -21,7 +21,7 @@ import {
   CONTENT_TYPE_BATCH, CONTENT_TYPE_HTTP,
   CONTENT_TYPE_MIXED,
   DOUBLE_DASH, EMPTY_STRING,
-  HTTP_VERSION_1_1, NEW_LINE, SPACE, XSSI_PREFIX
+  HTTP_VERSION_1_1, isResponseJson, NEW_LINE, numberIndex, SPACE, XSSI_PREFIX
 } from './utils';
 import { BATCH_REQUESTS_CONFIG, defaultBatchRequestsConfig } from './batch-requests.config';
 
@@ -43,6 +43,12 @@ export class BatchRequestsService {
     @Inject( BATCH_REQUESTS_CONFIG ) public config,
   ) {
     this.config = defaultsDeep(config, defaultBatchRequestsConfig);
+
+    if (this.config.debug) {
+      console.groupCollapsed(`Batch Requests (Config)`);
+      console.log(this.config);
+      console.groupEnd();
+    }
 
     this.requestObserver = new Subject<BatchStreamObject>();
     this.batcher = this.requestObserver;
@@ -109,6 +115,10 @@ export class BatchRequestsService {
                 return;
               }
 
+              if (this.config.debug) {
+                console.groupCollapsed(`Batch Requests (${requests.length})`);
+              }
+
               this.parse(response, requests).forEach((res, i) => {
                 queue[i].result.next(res);
                 queue[i].result.complete();
@@ -117,7 +127,11 @@ export class BatchRequestsService {
             error => {
               throw error;
             },
-            () => {}
+            () => {
+              if (this.config.debug) {
+                console.groupEnd();
+              }
+            }
           );
       });
   }
@@ -240,15 +254,63 @@ export class BatchRequestsService {
           body = body.trim();
         }
 
-        return this.config.parseResponse(
-          new HttpResponse<any>({
-            body,
-            headers,
-            status,
-            statusText
-          }),
-          requests[requestIndex],
-        );
+        const request = requests[requestIndex];
+
+        const rawResponse = new HttpResponse<any>({
+          body,
+          headers,
+          status,
+          statusText
+        });
+
+        const parsedResponse = this.config.parseResponse(rawResponse, request);
+
+        if (this.config.debug) {
+          let statusColor = 'yellow';
+
+          // Use the first number of the status code to get the class
+          switch (numberIndex(rawResponse.status, 0)) {
+            case 2:
+              statusColor = 'green';
+              break;
+            case 4:
+            case 5:
+              statusColor = 'red';
+              break;
+            default:
+              statusColor = 'yellow';
+              break;
+          }
+
+          const statusStyle = `color: ${statusColor};`;
+
+          console.groupCollapsed(`%c${request.urlWithParams}`, statusStyle);
+          console.groupCollapsed(`Request (${request.method})`);
+          console.log(request);
+          console.groupEnd();
+          console.groupCollapsed(`Response %c(${rawResponse.status} ${rawResponse.statusText})`, statusStyle);
+          console.groupCollapsed(`Raw`);
+          console.log(rawResponse);
+          console.groupEnd();
+          console.groupCollapsed(`Parsed`);
+          console.log(parsedResponse);
+          console.groupEnd();
+
+          if (
+            parsedResponse.body
+            && typeof parsedResponse.body === 'string'
+            && isResponseJson(parsedResponse)
+          ) {
+            // If it's an unparsed JSON response, let's parse it for easier debugging
+            console.groupCollapsed(`Body JSON`);
+            console.log(JSON.parse(parsedResponse.body));
+            console.groupEnd();
+          }
+          console.groupEnd();
+          console.groupEnd();
+        }
+
+        return parsedResponse;
       });
   }
 

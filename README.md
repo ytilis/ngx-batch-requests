@@ -23,6 +23,7 @@ In your `AppModule` providers, you can set the configuration like so:
 
 { provide: BATCH_REQUESTS_CONFIG,
   useValue: {
+    debug: false,
     bufferTimeSpan: 250,
     bufferMaxSize: 20,
   
