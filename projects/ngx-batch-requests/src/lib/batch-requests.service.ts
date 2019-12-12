@@ -7,7 +7,7 @@ import {
   HttpResponse,
   HttpHeaders,
   HttpEventType,
-  HttpParams
+  HttpParams, HttpErrorResponse
 } from '@angular/common/http';
 import { RxNgZoneScheduler } from 'ngx-rxjs-zone-scheduler';
 import { Observable, Subject } from 'rxjs';
@@ -21,7 +21,7 @@ import {
   CONTENT_TYPE_BATCH, CONTENT_TYPE_HTTP,
   CONTENT_TYPE_MIXED,
   DOUBLE_DASH, EMPTY_STRING,
-  HTTP_VERSION_1_1, isResponseJson, NEW_LINE, numberIndex, SPACE, XSSI_PREFIX
+  HTTP_VERSION_1_1, NEW_LINE, parseResponseLikeAngular, SPACE
 } from './utils';
 import { BATCH_REQUESTS_CONFIG, defaultBatchRequestsConfig } from './batch-requests.config';
 
@@ -110,8 +110,8 @@ export class BatchRequestsService {
             batchRequest
           )
           .subscribe(
-            response => {
-              if (response.type !== HttpEventType.Response) {
+            res => {
+              if (res.type !== HttpEventType.Response) {
                 return;
               }
 
@@ -119,9 +119,14 @@ export class BatchRequestsService {
                 console.groupCollapsed(`Batch Requests (${requests.length})`);
               }
 
-              this.parse(response, requests).forEach((res, i) => {
-                queue[i].result.next(res);
-                queue[i].result.complete();
+              this.parse(res, requests).forEach((parsed, i) => {
+                const {ok, response} = parsed;
+                if (ok) {
+                  queue[i].result.next(response);
+                  queue[i].result.complete();
+                } else {
+                  queue[i].result.error(response);
+                }
               });
             },
             error => {
@@ -196,7 +201,7 @@ export class BatchRequestsService {
   public parse(
     response: HttpResponse<ArrayBuffer | Blob | FormData | string | null>,
     requests: HttpRequest<any>[],
-  ): HttpResponse<any>[] {
+  ): { ok: boolean, response: HttpResponse<any> | HttpErrorResponse }[] {
     const contentTypeHeaderValue = response.headers.get(CONTENT_TYPE);
     // tslint:disable-next-line:no-null-keyword
     if (
@@ -229,60 +234,33 @@ export class BatchRequestsService {
         // 3. The response body (if any)
         const batchedParts = part.split(NEW_LINE + NEW_LINE);
         let headers = new HttpHeaders();
-        let status: number;
-        let statusText: string;
-        let body = batchedParts[2];
+        let status = 200;
+        let statusText = 'Ok';
+        const meta = batchedParts[1];
+        const body = batchedParts[2];
 
-        batchedParts[1]
-          .split(NEW_LINE)
-          .forEach((header, i) => {
-            if (i === 0) {
-              const [protocol, statusCode, ...statusTextArray] = header.split(SPACE);
-              status = parseInt(statusCode, 10);
-              statusText = statusTextArray.join(SPACE);
-            } else {
-              const [key, value] = header.split(': ');
-              headers = headers.append(key, value);
-            }
-          });
-
-        if (body !== undefined && body.length > 0) {
-          // implicitly strip a potential XSSI prefix.
-          body = body.replace(XSSI_PREFIX, EMPTY_STRING);
-
-          // Trim trailing newlines
-          body = body.trim();
-        }
+        meta.split(NEW_LINE).forEach((header, i) => {
+          if (i === 0) {
+            const [protocol, statusCode, ...statusTextArray] = header.split(SPACE);
+            status = parseInt(statusCode, 10);
+            statusText = statusTextArray.join(SPACE);
+          } else {
+            const [key, value] = header.split(': ');
+            headers = headers.append(key, value);
+          }
+        });
 
         const request = requests[requestIndex];
 
-        const rawResponse = new HttpResponse<any>({
-          body,
-          headers,
-          status,
-          statusText
-        });
+        const {
+          ok,
+          response: rawResponse,
+        } = parseResponseLikeAngular(request, status, statusText, headers, body);
 
         const parsedResponse = this.config.parseResponse(rawResponse, request);
 
         if (this.config.debug) {
-          let statusColor = 'yellow';
-
-          // Use the first number of the status code to get the class
-          switch (numberIndex(rawResponse.status, 0)) {
-            case 2:
-              statusColor = 'green';
-              break;
-            case 4:
-            case 5:
-              statusColor = 'red';
-              break;
-            default:
-              statusColor = 'yellow';
-              break;
-          }
-
-          const statusStyle = `color: ${statusColor};`;
+          const statusStyle = `color: ${ok ? 'green' : 'red'};`;
 
           console.groupCollapsed(`%c${request.urlWithParams}`, statusStyle);
           console.groupCollapsed(`Request (${request.method})`);
@@ -297,20 +275,28 @@ export class BatchRequestsService {
           console.groupEnd();
 
           if (
-            parsedResponse.body
-            && typeof parsedResponse.body === 'string'
-            && isResponseJson(parsedResponse)
+            parsedResponse.body && typeof parsedResponse.body === 'string' ||
+            parsedResponse.error && typeof parsedResponse.error === 'string'
           ) {
-            // If it's an unparsed JSON response, let's parse it for easier debugging
-            console.groupCollapsed(`Body JSON`);
-            console.log(JSON.parse(parsedResponse.body));
-            console.groupEnd();
+            // If it might be an unparsed JSON response, try to parse it for easier debugging
+            try {
+              const json = JSON.parse(parsedResponse.body || parsedResponse.error);
+
+              console.groupCollapsed(`${parsedResponse.body ? 'Body' : 'Error'} JSON`);
+              console.log(json);
+              console.groupEnd();
+            } catch (e) {
+              // Don't do anything if it doesn't parse, probably just isn't JSON
+            }
           }
           console.groupEnd();
           console.groupEnd();
         }
 
-        return parsedResponse;
+        return {
+          ok,
+          response: parsedResponse,
+        };
       });
   }
 
@@ -353,5 +339,5 @@ export class BatchRequestsService {
 interface BatchStreamObject {
   req: HttpRequest<any>;
   next: HttpHandler;
-  result?: Subject<HttpEvent<any>>;
+  result?: Subject<HttpEvent<any> | HttpErrorResponse>;
 }

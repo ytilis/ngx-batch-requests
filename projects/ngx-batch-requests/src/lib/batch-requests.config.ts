@@ -1,4 +1,4 @@
-import { HttpRequest, HttpHeaders, HttpParams, HttpResponse } from '@angular/common/http';
+import { HttpRequest, HttpHeaders, HttpParams, HttpResponse, HttpErrorResponse } from '@angular/common/http';
 import { InjectionToken } from '@angular/core';
 
 export interface BatchRequestsConfig {
@@ -16,7 +16,7 @@ export interface BatchRequestsConfig {
 
   debug: boolean;
 
-  parseResponse(response: HttpResponse<any>, request: HttpRequest<any>): any;
+  parseResponse(response: HttpResponse<any> | HttpErrorResponse, request: HttpRequest<any>): any;
 
   shouldBatch(request: HttpRequest<any>): boolean;
 }
