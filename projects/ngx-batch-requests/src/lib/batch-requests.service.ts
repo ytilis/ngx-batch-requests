@@ -206,7 +206,7 @@ export class BatchRequestsService {
     // tslint:disable-next-line:no-null-keyword
     if (
       contentTypeHeaderValue == null ||
-      contentTypeHeaderValue.indexOf(CONTENT_TYPE_BATCH) === -1
+      contentTypeHeaderValue.indexOf(CONTENT_TYPE_MIXED) === -1
     ) {
       throw new Error(
         `A batched response must contain a ${CONTENT_TYPE}: ${CONTENT_TYPE_MIXED} header`
@@ -214,7 +214,7 @@ export class BatchRequestsService {
     }
 
     const boundary = contentTypeHeaderValue
-      .split(CONTENT_TYPE_BATCH)[1]
+      .split(CONTENT_TYPE_MIXED)[1]
       .replace(/"/g, EMPTY_STRING);
 
     return response.body
